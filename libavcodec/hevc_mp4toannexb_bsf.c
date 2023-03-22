@@ -163,8 +163,8 @@ static int hevc_mp4toannexb_filter(AVBSFContext *ctx, AVPacket *out)
             if (!pdata) {
                 ret = AVERROR(ENOMEM);
 // jdlee 2023. 01. 02 modify
-                //av_log(s, AV_LOG_ERROR, "Failed to allocate sei side data\n");
-                av_log(ctx, AV_LOG_ERROR, "Failed to allocate sei side data\n");
+                 //av_log(s, AV_LOG_ERROR, "Failed to allocate sei side data\n");
+                 av_log(ctx, AV_LOG_ERROR, "Failed to allocate sei side data : nalu_payload_size (%zu)\n", nalu_payload_size);
                 goto fail;
             }
             memcpy(pdata, gb.buffer + 2, nalu_payload_size); // copy only nal unit payload

@@ -1245,10 +1245,8 @@ start:
         content = av_malloc(content_length + 1);
         if (!content)
             return AVERROR(ENOMEM);
-        if (ffurl_read_complete(rt->rtsp_hd, content, content_length) != content_length) {
-	    av_freep(&content); // jdlee add 2023.01.06
+        if (ffurl_read_complete(rt->rtsp_hd, content, content_length) != content_length)
             return AVERROR(EIO);
-      }
         content[content_length] = '\0';
     }
     if (content_ptr)

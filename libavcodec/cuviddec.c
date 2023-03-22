@@ -482,11 +482,15 @@ static int cuvid_output_frame(AVCodecContext *avctx, AVFrame *frame)
             if (pkt.side_data[i].type == AV_PKT_DATA_CUSTOM_METADATA)
             {                
                 AV_WB32(sd + offset, pkt.side_data[i].size);
+#if 1
 		if (offset + 4 + pkt.side_data[i].size <= CUSTOM_SIDEDATA_SIZE) { // jdlee add
-                	memcpy(sd + offset + 4, pkt.side_data[i].data, pkt.side_data[i].size);
-		} else {
-			break;
-		}
+                        memcpy(sd + offset + 4, pkt.side_data[i].data, pkt.side_data[i].size);
+                } else {
+                        break;
+                }
+#else
+                memcpy(sd + offset + 4, pkt.side_data[i].data, pkt.side_data[i].size);
+#endif
                 offset += pkt.side_data[i].size + 4;
             }
         }
@@ -515,7 +519,7 @@ static int cuvid_output_frame(AVCodecContext *avctx, AVFrame *frame)
 
         av_fifo_generic_read(ctx->frame_queue, &parsed_frame, sizeof(CuvidParsedFrame), NULL);
 	if ( av_fifo_size(ctx->sd_queue)) { // jdlee add 2022.12.19
-        	av_fifo_generic_read(ctx->sd_queue, &custom_sidedata, CUSTOM_SIDEDATA_SIZE, NULL);
+	    av_fifo_generic_read(ctx->sd_queue, &custom_sidedata, CUSTOM_SIDEDATA_SIZE, NULL);
 	}
 
         memset(&params, 0, sizeof(params));
@@ -661,24 +665,21 @@ static int cuvid_output_frame(AVCodecContext *avctx, AVFrame *frame)
             if (sd_size == 0)
                 break;
 
-	    /* new side data 하기 전에 멈추는 걸루?? */
-	    if (sd_offset + 4 + sd_size <= CUSTOM_SIDEDATA_SIZE )
-	    {
-		break;
-	    }
-
+#if 1
+            /* new side data 하기 전에 멈추는 걸루?? */
+            if (sd_offset + 4 + sd_size > CUSTOM_SIDEDATA_SIZE )
+            {
+                break;
+            }
+#endif
             frame_sd = av_frame_new_side_data(frame, AV_FRAME_DATA_SEI_UNREGISTERED, sd_size);
             if (!frame_sd)
             {
                 ret = AVERROR(ENOMEM);
                 goto error;
             }
-	    if (sd_offset + 4 + sd_size <= CUSTOM_SIDEDATA_SIZE ) { // jdlee 2022.12.13 add
-		    memcpy(frame_sd->data, &custom_sidedata[sd_offset + 4], sd_size);
-		    //frame_sd->data = frame_sd->data;
-	    } else {
-		break;
-	    }
+            memcpy(frame_sd->data, &custom_sidedata[sd_offset + 4], sd_size);
+            frame_sd->data = frame_sd->data;
 
             sd_offset += sd_size + 4;
         }

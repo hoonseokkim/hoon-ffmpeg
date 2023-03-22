@@ -549,15 +549,13 @@ static void set_band_parameters(AudioFFTDeNoiseContext *s,
 static void read_custom_noise(AudioFFTDeNoiseContext *s, int ch)
 {
     DeNoiseChannel *dnch = &s->dnch[ch];
-//    char *p, *arg, *saveptr = NULL;
-    char *custom_noise_str, *p, *arg, *saveptr = NULL; // jdlee modify 2023.01.06
+    char *p, *arg, *saveptr = NULL;
     int i, ret, band_noise[15] = { 0 };
 
     if (!s->band_noise_str)
         return;
 
-//    p = av_strdup(s->band_noise_str);
-    custom_noise_str = p = av_strdup(s->band_noise_str); // jdlee modify 2023.01.06
+    p = av_strdup(s->band_noise_str);
     if (!p)
         return;
 
@@ -576,8 +574,7 @@ static void read_custom_noise(AudioFFTDeNoiseContext *s, int ch)
         band_noise[i] = av_clip(band_noise[i], -24, 24);
     }
 
-//    av_free(p);
-    av_free(custom_noise_str); // jdlee modify 2023.01.06
+    av_free(p);
     memcpy(dnch->band_noise, band_noise, sizeof(band_noise));
 }
 

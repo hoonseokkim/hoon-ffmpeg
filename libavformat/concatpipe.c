@@ -104,28 +104,6 @@ static int safe_filename(const char *f)
 
 #define FAIL(retcode) do { ret = (retcode); goto fail; } while(0)
 
-// jdlee add 2023.01.05
-static int concat_read_close_2(AVFormatContext *avf)
-{
-	ConcatContext *cat = avf->priv_data;
-	unsigned j;
-
-	if (cat && cat->files)
-	{
-		av_freep(&cat->files->url);
-		for (j = 0; j < cat->files->nb_streams; j++) {
-			if (cat->files->streams[j].bsf)
-				av_bsf_free(&cat->files->streams[j].bsf);
-		}
-		av_freep(&cat->files->streams);
-		av_dict_free(&cat->files->metadata);
-	}
-	if (cat->avf)
-		avformat_close_input(&cat->avf);
-	return 0;
-}
-// add end 2023.01.05
-
 static int add_file(AVFormatContext *avf, char *filename, ConcatFile **rfile,
                     unsigned *nb_files_alloc)
 {
@@ -164,22 +142,9 @@ static int add_file(AVFormatContext *avf, char *filename, ConcatFile **rfile,
         cat->files = new_files;
         *nb_files_alloc = 1;
     }
-// jdlee add 2023.01.04
-    else {
-        if (filename)
-                av_freep(&filename);
-// jdlee add 2023.01.05
-	//concat_read_close_2(avf);
-// add end 2023.01.05
-    }
-// add end 2023.01.04
 
     // concatpipe 에서는 하나의 file만 유지
     file = cat->files;
-// jdlee add 2023.01.04
-    if (file->url )
-        av_freep (&file->url);
-// add end
     memset(file, 0, sizeof(*file));
     *rfile = file;
     ++cat->nb_files;
@@ -319,7 +284,6 @@ static int match_streams(AVFormatContext *avf)
                      cat->avf->nb_streams * sizeof(*map));
     if (!map)
         return AVERROR(ENOMEM);
-
     cat->cur_file->streams = map;
     memset(map + cat->cur_file->nb_streams, 0,
            (cat->avf->nb_streams - cat->cur_file->nb_streams) * sizeof(*map));
@@ -361,10 +325,7 @@ static int open_file(AVFormatContext *avf, unsigned fileno)
     int ret;
 
     if (cat->avf)
-    {
         avformat_close_input(&cat->avf);
-        avformat_free_context(cat->avf); // jdlee 2023.01.04 add
-    }
 
     cat->avf = avformat_alloc_context();
     if (!cat->avf)
@@ -572,9 +533,8 @@ static int concat_read_packet(AVFormatContext *avf, AVPacket *pkt)
                 return ret;
             continue;
         }
-        if (ret < 0) {
+        if (ret < 0)
             return ret;
-	}
         if ((ret = match_streams(avf)) < 0) {
             return ret;
         }

@@ -999,7 +999,6 @@ static av_cold void nvenc_setup_rate_control(AVCodecContext *avctx)
                         ctx->encode_config.frameIntervalP - 4;
 
         if (lkd_bound < 0) {
-	    ctx->encode_config.rcParams.enableLookahead = 0; // jdlee 2023.01.04
             av_log(avctx, AV_LOG_WARNING,
                    "Lookahead not enabled. Increase buffer delay (-delay).\n");
         } else {
@@ -1036,7 +1035,6 @@ static av_cold void nvenc_setup_rate_control(AVCodecContext *avctx)
 
         //CQ mode shall discard avg bitrate & honor max bitrate;
         ctx->encode_config.rcParams.averageBitRate = avctx->bit_rate = 0;
-        ctx->encode_config.rcParams.vbvBufferSize = avctx->rc_buffer_size = 0; // jdlee add 2023.01.04
         ctx->encode_config.rcParams.maxBitRate = avctx->rc_max_rate;
     }
 }
@@ -2012,9 +2010,6 @@ static int process_output_surface(AVCodecContext *avctx, AVPacket *pkt, NvencSur
         size_t ofst = 0;
         for (int i = 0; INSERT_SEI && tmpoutsurf->in_ref && i < tmpoutsurf->in_ref->nb_side_data; i++)
         {
-	    if (ofst +4 + nalu_hdr_size + tmpoutsurf->in_ref->side_data[i]->size > AV_PKT_DATA_CUSTOM_METADATA ) // jdlee add 2022. 12. 26
-		break;
-
             AV_WB32(pkt->data + ofst, (uint32_t)1); // write nal size
             
             // write nal unit header
@@ -2023,7 +2018,6 @@ static int process_output_surface(AVCodecContext *avctx, AVPacket *pkt, NvencSur
             } else if (nalu_hdr_size == 2) { // for hevc
                 AV_WB16(pkt->data + ofst + 4, (uint16_t)0x4E01);
             }
-
             
             memcpy(pkt->data + ofst + 4 + nalu_hdr_size, tmpoutsurf->in_ref->side_data[i]->data, tmpoutsurf->in_ref->side_data[i]->size); // write nal unit payload
             ofst += (tmpoutsurf->in_ref->side_data[i]->size + 4 + nalu_hdr_size);
@@ -2038,6 +2032,7 @@ static int process_output_surface(AVCodecContext *avctx, AVPacket *pkt, NvencSur
         res = nvenc_print_error(avctx, nv_status, "Failed unlocking bitstream buffer, expect the gates of mordor to open");
         goto error;
     }
+
 
     if (avctx->pix_fmt == AV_PIX_FMT_CUDA || avctx->pix_fmt == AV_PIX_FMT_D3D11) {
         ctx->registered_frames[tmpoutsurf->reg_idx].mapped -= 1;
@@ -2392,8 +2387,7 @@ static int nvenc_send_frame(AVCodecContext *avctx, const AVFrame *frame)
 
     if (frame && frame->buf[0]) {
         av_fifo_generic_write(ctx->output_surface_queue, &in_surf, sizeof(in_surf), NULL);
-	if (avctx->codec_descriptor->props & AV_CODEC_PROP_REORDER) // jdlee 2022.12.22
-        	timestamp_queue_enqueue(ctx->timestamp_list, frame->pts);
+        timestamp_queue_enqueue(ctx->timestamp_list, frame->pts);
     }
 
     /* all the pending buffers are now ready for output */
@@ -2419,8 +2413,7 @@ int ff_nvenc_receive_packet(AVCodecContext *avctx, AVPacket *pkt)
     if ((!ctx->cu_context && !ctx->d3d11_device) || !ctx->nvencoder)
         return AVERROR(EINVAL);
 
-    //if (!frame->buf[0]) {
-    if (frame && !frame->buf[0]) { // jdlee
+    if (!frame->buf[0]) {
         res = ff_encode_get_frame(avctx, frame);
         if (res < 0 && res != AVERROR_EOF)
             return res;

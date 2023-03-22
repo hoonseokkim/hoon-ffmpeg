@@ -240,7 +240,9 @@ static int h264_mp4toannexb_filter(AVBSFContext *ctx, AVPacket *opkt)
                 uint8_t *pdata = av_packet_new_side_data(in, AV_PKT_DATA_CUSTOM_METADATA, nalu_payload_size);
                 if (!pdata) {
                     ret = AVERROR(ENOMEM);
-                    av_log(s, AV_LOG_ERROR, "Failed to allocate sei side data\n");
+		    // jdlee 2023.03.16 modify 
+		    //av_log(s, AV_LOG_ERROR, "Failed to allocate sei side data\n");
+		    av_log(ctx, AV_LOG_ERROR, "Failed to allocate sei side data : nalu_payload_size(%zu)\n", nalu_payload_size);
                     goto fail;
                 }
                 memcpy(pdata, buf + 1, nalu_payload_size);  // copy only nal unit payload

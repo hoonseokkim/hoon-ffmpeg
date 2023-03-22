@@ -1349,7 +1349,6 @@ static int submit_frame(QSVEncContext *q, const AVFrame *frame,
                 return ret;
             }
         } else {
-	    av_frame_unref(qf->frame); // jdlee 2023.01.06 add
             ret = av_frame_ref(qf->frame, frame);
             if (ret < 0)
                 return ret;

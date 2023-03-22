@@ -328,7 +328,6 @@ static int filter_slice(AVFilterContext *ctx, void *arg, int jobnr,
 
 static int filter_frame(AVFilterLink *inlink, AVFrame *in)
 {
-    int err = 0; // jdlee add 2023.01.06
     AVFilterContext *ctx = inlink->dst;
     TransContext *s = ctx->priv;
     AVFilterLink *outlink = ctx->outputs[0];
@@ -340,15 +339,10 @@ static int filter_frame(AVFilterLink *inlink, AVFrame *in)
 
     out = ff_get_video_buffer(outlink, outlink->w, outlink->h);
     if (!out) {
-        ///av_frame_free(&in);
-        //return AVERROR(ENOMEM);
-	err = AVERROR(ENOMEM); // jdlee modify
-        goto fail;
+        av_frame_free(&in);
+        return AVERROR(ENOMEM);
     }
-//    av_frame_copy_props(out, in);
-    err = av_frame_copy_props(out, in);
-    if (err < 0)
-        goto fail;
+    av_frame_copy_props(out, in);
 
     if (in->sample_aspect_ratio.num == 0) {
         out->sample_aspect_ratio = in->sample_aspect_ratio;
@@ -361,13 +355,6 @@ static int filter_frame(AVFilterLink *inlink, AVFrame *in)
     ctx->internal->execute(ctx, filter_slice, &td, NULL, FFMIN(outlink->h, ff_filter_get_nb_threads(ctx)));
     av_frame_free(&in);
     return ff_filter_frame(outlink, out);
-
-// jdlee addd 2023.01.06
-fail :
-    av_frame_free(&in);
-    av_frame_free(&out);
-    return err;
-// add end
 }
 
 #define OFFSET(x) offsetof(TransContext, x)

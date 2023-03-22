@@ -2491,7 +2491,7 @@ static int hls_write_packet(AVFormatContext *s, AVPacket *pkt)
 
     can_split = can_split && (pkt->pts - vs->end_pts > 0);
     if (vs->packets_written && can_split 
-        /*&& av_compare_ts(pkt->pts - vs->start_pts, st->time_base, end_pts, AV_TIME_BASE_Q) >= 0 */) { // jdlee 2022.12.29 
+        /*&& av_compare_ts(pkt->pts - vs->start_pts, st->time_base, end_pts, AV_TIME_BASE_Q) >= 0*/) {
         int64_t new_start_pos;
         int byterange_mode = (hls->flags & HLS_SINGLE_FILE) || (hls->max_seg_size > 0);
 
@@ -2580,20 +2580,10 @@ static int hls_write_packet(AVFormatContext *s, AVPacket *pkt)
                 if (ret < 0) {
                     av_log(s, AV_LOG_WARNING, "upload segment failed,"
                            " will retry with a new http session.\n");
-		    ff_format_io_close(s, &vs->out);
-		    ret = hlsenc_io_open(s, &vs->out, filename, &options);
-// jdlee add 2022.12.29
-		    if (ret < 0) {
-			    av_log(s, hls->ignore_io_errors ? AV_LOG_WARNING : AV_LOG_ERROR, "Failed to open file '%s'\n", filename);
-			    av_freep(&filename);
-			    av_dict_free(&options);
-			    return hls->ignore_io_errors ? 0 : ret;
-		    }
-// jdlee add end
+                    ff_format_io_close(s, &vs->out);
+                    ret = hlsenc_io_open(s, &vs->out, filename, &options);
                     reflush_dynbuf(vs, &range_length);
-		    ret = hlsenc_io_close(s, &vs->out, filename);
-		    if (ret < 0)
-			    av_log(s, AV_LOG_WARNING, "Failed to upload file '%s' at the end.\n", oc->url);
+                    ret = hlsenc_io_close(s, &vs->out, filename);
                 }
                 av_dict_free(&options);
                 av_freep(&vs->temp_buffer);
@@ -2770,13 +2760,8 @@ static int hls_write_trailer(struct AVFormatContext *s)
                 vs->start_pos = range_length;
                 byterange_mode = (hls->flags & HLS_SINGLE_FILE) || (hls->max_seg_size > 0);
                 if (!byterange_mode) {
-#if 0 // jdlee 2022.12.29...
                     ff_format_io_close(s, &vs->out);
                     hlsenc_io_close(s, &vs->out, vs->base_output_dirname);
-#else
-                    //ff_format_io_close(s, &vs->out);
-                    hlsenc_io_close(s, &vs->out, vs->base_output_dirname);
-#endif
                 }
             }
         }
