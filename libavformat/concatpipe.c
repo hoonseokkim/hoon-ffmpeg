@@ -143,6 +143,25 @@ static int add_file(AVFormatContext *avf, char *filename, ConcatFile **rfile,
         *nb_files_alloc = 1;
     }
 
+	*nb_files_alloc = 1; // 사용은 안하는 것 같음.
+
+	if (cat && cat->files)
+	{
+		av_freep(&cat->files->url);
+		for (j = 0; j < cat->files->nb_streams; j++) {
+			if (cat->files->streams[j].bsf)
+				av_bsf_free(&cat->files->streams[j].bsf);
+		}
+		av_freep(&cat->files->streams);
+		if (cat->files->metadata) {
+			av_dict_free(&cat->files->metadata);
+		}
+#if 0
+		if (cat->avf)
+			avformat_close_input(&cat->avf);
+#endif
+	}
+
     // concatpipe 에서는 하나의 file만 유지
     file = cat->files;
     memset(file, 0, sizeof(*file));
