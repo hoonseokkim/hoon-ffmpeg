@@ -938,7 +938,11 @@ static int hls_mux_init(AVFormatContext *s, VariantStream *vs)
     av_dict_copy(&options, hls->format_options, 0);
     if (hls->segment_type == SEGMENT_TYPE_FMP4) {
         av_dict_set(&options, "fflags", "-autobsf", 0);
-        av_dict_set(&options, "movflags", "+frag_custom+dash+delay_moov", AV_DICT_APPEND);
+		// jdlee 2023.05.18 modify
+		// memory leak in fragmented MP4??
+		// constant increase of memory usage when demuxing live fmp4?
+		av_dict_set(&options, "movflags", "+frag_custom+dash+delay_moov+skip_trailer", AV_DICT_APPEND);
+        //av_dict_set(&options, "movflags", "+frag_custom+dash+delay_moov", AV_DICT_APPEND);
     } else {
         /* We only require one PAT/PMT per segment. */
         char period[21];
