@@ -148,7 +148,7 @@ static int add_file(AVFormatContext *avf, char *filename, ConcatFile **rfile,
 	if (cat && cat->files)
 	{
 		av_freep(&cat->files->url);
-		for (j = 0; j < cat->files->nb_streams; j++) {
+		for (int j = 0; j < cat->files->nb_streams; j++) {
 			if (cat->files->streams[j].bsf)
 				av_bsf_free(&cat->files->streams[j].bsf);
 		}
