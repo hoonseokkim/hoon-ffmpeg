@@ -48,3 +48,9 @@ Thumbs.db
 *.mov
 *.wmv
 
+*.o
+*.d
+*.a
+*.pc
+*.version
+hls_out/*
