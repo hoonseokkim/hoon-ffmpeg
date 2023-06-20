@@ -2421,6 +2421,7 @@ static int hls_write_packet(AVFormatContext *s, AVPacket *pkt)
     int use_temp_file = 0;
     VariantStream *vs = NULL;
     char *old_filename = NULL;
+    int is_segmenting_by_frame = 0;
 
     for (i = 0; i < hls->nb_varstreams; i++) {
         vs = &hls->var_streams[i];
@@ -2494,8 +2495,14 @@ static int hls_write_packet(AVFormatContext *s, AVPacket *pkt)
     }
 
     can_split = can_split && (pkt->pts - vs->end_pts > 0);
-    if (vs->packets_written && can_split && av_compare_ts(pkt->pts - vs->start_pts, st->time_base,
-                                                          end_pts, AV_TIME_BASE_Q) >= 0) {
+
+    if (st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
+        is_segmenting_by_frame = vs->packets_written && can_split;
+    } else /* if (st->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) */ {
+        is_segmenting_by_frame = vs->packets_written && can_split && av_compare_ts(pkt->pts - vs->start_pts, st->time_base, end_pts, AV_TIME_BASE_Q) >= 0;
+    }
+
+    if (is_segmenting_by_frame) {
         int64_t new_start_pos;
         int byterange_mode = (hls->flags & HLS_SINGLE_FILE) || (hls->max_seg_size > 0);
 
@@ -2660,7 +2667,6 @@ static int hls_write_packet(AVFormatContext *s, AVPacket *pkt)
         if (ret < 0) {
             return ret;
         }
-
     }
 
     vs->packets_written++;
