@@ -136,7 +136,7 @@ static int add_file(AVFormatContext *avf, char *filename, ConcatFile **rfile,
     // 최초 1회 할당
     if (!cat->files)
     {
-        ConcatFile *new_files = av_malloc(sizeof(*cat->files));
+        ConcatFile *new_files = av_mallocz(sizeof(*cat->files));
         if(!new_files)
             FAIL(AVERROR(ENOMEM));
         cat->files = new_files;
